@@ -1,4 +1,3 @@
-"""BelgeKalkan: deterministic personal-data discovery and redaction."""
+"""BelgeKalkan: local personal-data discovery and redaction."""
 
-__version__ = "1.0.0"
-
+__version__ = "2.0.0"

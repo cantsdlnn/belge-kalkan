@@ -4,5 +4,4 @@ Bu projeyi geliştirirken üretken yapay zekâyı gereksinimleri sınır durumla
 
 T.C. kimlik ve IBAN doğrulama kurallarını kaynak kod düzeyinde inceledim; hangi verinin API yanıtında gösterilmeyeceğine, çakışan bulguların nasıl çözüleceğine ve ürünün hangi iddialarda bulunamayacağına ben karar verdim. Testleri çalıştırmak, başarısız sonuçları incelemek ve son doğrulamayı yapmak benim sorumluluğumdaydı.
 
-Uygulamanın çalışma zamanında üretken yapay zekâ veya harici model servisi kullanılmaz. Tespitler sürümlenmiş ve deterministik kurallarla yapılır.
-
+Uygulamanın çalışma zamanında üretken yapay zekâ veya harici model servisi kullanılmaz. Görselden yazı bölgesi çıkarmak için cihazda çalışan RapidOCR/ONNX modeli kullanılır; bulunan metindeki kişisel veri sınıflandırması ise sürümlenmiş ve deterministik kurallarla yapılır. OCR sonucunun eksik olabileceği kabul edildiği için nihai maske seçimi kullanıcıya gösterilir.

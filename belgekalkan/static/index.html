@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Metinlerdeki kişisel verileri tarayıcıdan ayrılmadan maskeleyin." />
+    <meta name="description" content="Metin, görsel ve PDF içindeki kişisel verileri yerel olarak maskeleyin." />
     <title>BelgeKalkan · Yerel veri maskeleme</title>
     <link rel="stylesheet" href="/assets/style.css" />
   </head>
@@ -11,39 +11,81 @@
     <main>
       <header class="hero">
         <div>
-          <p class="eyebrow">GİZLİLİK ODAKLI METİN İŞLEME</p>
+          <p class="eyebrow">GİZLİLİK ODAKLI BELGE İŞLEME</p>
           <h1>Belge<span>Kalkan</span></h1>
           <p class="lead">Paylaşmadan önce gör. Göndermeden önce maskele.</p>
         </div>
-        <div class="local-badge"><span></span> İşlem bu sunucuda, kayıt tutulmadan yapılır</div>
+        <div class="local-badge"><span></span> Yerel OCR · kalıcı kayıt yok</div>
       </header>
 
-      <section class="workspace" aria-label="Maskeleme çalışma alanı">
-        <div class="panel">
-          <div class="panel-title"><h2>Kaynak metin</h2><button id="sample" type="button">Örneği yükle</button></div>
-          <textarea id="source" maxlength="100000" spellcheck="false" aria-label="Kaynak metin" placeholder="Maskelemek istediğiniz metni buraya yapıştırın…"></textarea>
-          <div class="controls">
-            <label>Maskeleme
-              <select id="mode"><option value="label">Tür etiketi</option><option value="mask">Son 4 haneyi koru</option></select>
-            </label>
-            <button id="redact" class="primary" type="button">Tara ve maskele</button>
+      <nav class="mode-tabs" aria-label="Belge türü">
+        <button class="mode-tab active" data-target="textMode" type="button">Metin maskeleme</button>
+        <button class="mode-tab" data-target="documentMode" type="button">Görsel / PDF maskeleme <span>YENİ</span></button>
+      </nav>
+
+      <section id="textMode" class="mode-panel">
+        <div class="workspace" aria-label="Metin maskeleme çalışma alanı">
+          <div class="panel">
+            <div class="panel-title"><h2>Kaynak metin</h2><button id="sample" type="button">Örneği yükle</button></div>
+            <textarea id="source" maxlength="100000" spellcheck="false" aria-label="Kaynak metin" placeholder="Maskelemek istediğiniz metni buraya yapıştırın…"></textarea>
+            <div class="controls">
+              <label>Maskeleme
+                <select id="mode"><option value="label">Tür etiketi</option><option value="mask">Son 4 haneyi koru</option></select>
+              </label>
+              <button id="redact" class="primary" type="button">Tara ve maskele</button>
+            </div>
+          </div>
+
+          <div class="panel result-panel">
+            <div class="panel-title"><h2>Güvenli çıktı</h2><button id="copy" type="button">Kopyala</button></div>
+            <pre id="result" tabindex="0">Sonuç burada görünecek.</pre>
+            <div id="stats" class="stats" aria-live="polite"></div>
           </div>
         </div>
+      </section>
 
-        <div class="panel result-panel">
-          <div class="panel-title"><h2>Güvenli çıktı</h2><button id="copy" type="button">Kopyala</button></div>
-          <pre id="result" tabindex="0">Sonuç burada görünecek.</pre>
-          <div id="stats" class="stats" aria-live="polite"></div>
+      <section id="documentMode" class="mode-panel" hidden>
+        <div class="document-shell">
+          <div class="upload-panel">
+            <div>
+              <p class="step">01 · BELGEYİ SEÇ</p>
+              <h2>Görseli veya taranmış PDF’yi yükle</h2>
+              <p>PNG, JPEG, WEBP, TIFF veya en fazla 10 sayfalık PDF. Üst sınır 10 MB.</p>
+            </div>
+            <label class="drop-zone" for="documentFile">
+              <input id="documentFile" type="file" accept="image/png,image/jpeg,image/webp,image/tiff,application/pdf" />
+              <strong id="fileName">Dosya seç veya buraya bırak</strong>
+              <span>Dosya kalıcı olarak kaydedilmez; OCR yerel modelle çalışır.</span>
+            </label>
+            <button id="scanDocument" class="primary wide" type="button">OCR ile tara</button>
+            <p id="documentStatus" class="document-status" role="status"></p>
+          </div>
+
+          <div id="documentReview" class="document-review" hidden>
+            <div class="review-head">
+              <div><p class="step">02 · İNSAN KONTROLÜ</p><h2>Maskelenecek alanları doğrula</h2></div>
+              <div id="documentStats" class="document-stats"></div>
+            </div>
+            <div class="review-warning">OCR hiçbir zaman kusursuz değildir. Kırmızı kutuları kontrol edin; kaçan alanlar için “Elle alan ekle” seçeneğini kullanın.</div>
+            <div class="review-tools">
+              <button id="toggleAll" type="button">Tümünü kaldır</button>
+              <button id="manualMode" type="button">+ Elle alan ekle</button>
+            </div>
+            <div id="pagePreviews" class="page-previews"></div>
+            <div class="download-row">
+              <p>Seçili alanlar siyah blokla kapatılır. PDF çıktısı, gizli metin katmanı kalmaması için yeniden oluşturulur.</p>
+              <button id="downloadRedacted" class="primary" type="button">Maskeli dosyayı indir</button>
+            </div>
+          </div>
         </div>
       </section>
 
       <section class="principles">
-        <article><b>01</b><h3>Doğrulanan desen</h3><p>T.C. kimlik ve IBAN adayları yalnız biçimle değil sağlama toplamıyla doğrulanır.</p></article>
-        <article><b>02</b><h3>Ham değer yok</h3><p>API bulgu türünü ve konumunu döndürür; kişisel veriyi yanıtta ikinci kez taşımaz.</p></article>
-        <article><b>03</b><h3>Açıklanabilir sınır</h3><p>Bu araç deterministik desenleri bulur; bağlamı anlayan eksiksiz bir DLP ürünü değildir.</p></article>
+        <article><b>01</b><h3>Yerel OCR</h3><p>Görsel içeriği harici model servisine gönderilmez; OCR bu sunucuda bellekte çalışır.</p></article>
+        <article><b>02</b><h3>İnsan onayı</h3><p>Bulunan kutular seçili gelir; kullanıcı her alanı görebilir, kaldırabilir veya yenisini ekleyebilir.</p></article>
+        <article><b>03</b><h3>Açıklanabilir sınır</h3><p>T.C. kimlik ve IBAN checksum ile doğrulanır; OCR hatası ve bağlamsal veri için son kontrol insandadır.</p></article>
       </section>
     </main>
     <script src="/assets/app.js" defer></script>
   </body>
 </html>
-
