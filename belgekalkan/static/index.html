@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Metinlerdeki kişisel verileri tarayıcıdan ayrılmadan maskeleyin." />
+    <title>BelgeKalkan · Yerel veri maskeleme</title>
+    <link rel="stylesheet" href="/assets/style.css" />
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div>
+          <p class="eyebrow">GİZLİLİK ODAKLI METİN İŞLEME</p>
+          <h1>Belge<span>Kalkan</span></h1>
+          <p class="lead">Paylaşmadan önce gör. Göndermeden önce maskele.</p>
+        </div>
+        <div class="local-badge"><span></span> İşlem bu sunucuda, kayıt tutulmadan yapılır</div>
+      </header>
+
+      <section class="workspace" aria-label="Maskeleme çalışma alanı">
+        <div class="panel">
+          <div class="panel-title"><h2>Kaynak metin</h2><button id="sample" type="button">Örneği yükle</button></div>
+          <textarea id="source" maxlength="100000" spellcheck="false" aria-label="Kaynak metin" placeholder="Maskelemek istediğiniz metni buraya yapıştırın…"></textarea>
+          <div class="controls">
+            <label>Maskeleme
+              <select id="mode"><option value="label">Tür etiketi</option><option value="mask">Son 4 haneyi koru</option></select>
+            </label>
+            <button id="redact" class="primary" type="button">Tara ve maskele</button>
+          </div>
+        </div>
+
+        <div class="panel result-panel">
+          <div class="panel-title"><h2>Güvenli çıktı</h2><button id="copy" type="button">Kopyala</button></div>
+          <pre id="result" tabindex="0">Sonuç burada görünecek.</pre>
+          <div id="stats" class="stats" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="principles">
+        <article><b>01</b><h3>Doğrulanan desen</h3><p>T.C. kimlik ve IBAN adayları yalnız biçimle değil sağlama toplamıyla doğrulanır.</p></article>
+        <article><b>02</b><h3>Ham değer yok</h3><p>API bulgu türünü ve konumunu döndürür; kişisel veriyi yanıtta ikinci kez taşımaz.</p></article>
+        <article><b>03</b><h3>Açıklanabilir sınır</h3><p>Bu araç deterministik desenleri bulur; bağlamı anlayan eksiksiz bir DLP ürünü değildir.</p></article>
+      </section>
+    </main>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
+
