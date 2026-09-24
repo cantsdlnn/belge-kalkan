@@ -70,6 +70,30 @@ def test_document_redact_endpoint() -> None:
     assert response.headers["content-type"] == "image/png"
     assert "shot-maskeli.png" in response.headers["content-disposition"]
 
+    black_response = client.post(
+        "/api/document/redact",
+        files={"file": ("shot.png", source, "image/png")},
+        data={
+            "regions": json.dumps(regions),
+            "fingerprint": scan.fingerprint,
+            "mask_style": "black",
+        },
+    )
+    black_image = Image.open(io.BytesIO(black_response.content)).convert("RGB")
+    assert black_response.status_code == 200
+    assert black_image.getpixel((20, 20)) == (0, 0, 0)
+
+    invalid_style = client.post(
+        "/api/document/redact",
+        files={"file": ("shot.png", source, "image/png")},
+        data={
+            "regions": json.dumps(regions),
+            "fingerprint": scan.fingerprint,
+            "mask_style": "blur",
+        },
+    )
+    assert invalid_style.status_code == 422
+
 
 def test_document_endpoints_reject_invalid_or_oversized_uploads() -> None:
     invalid = client.post(

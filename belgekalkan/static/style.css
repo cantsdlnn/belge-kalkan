@@ -54,9 +54,11 @@ select { min-width:190px; padding:10px; background:#0f211d; color:#e9fff8; borde
 .document-stats { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
 .document-stats span { border:1px solid #285248; padding:7px 10px; color:#b8d8ce; font-size:.75rem; }
 .review-warning { margin:20px 0; padding:13px 16px; border-left:3px solid #efbc6b; background:#171d17; color:#d9c28e; font-size:.8rem; line-height:1.5; }
-.review-tools { display:flex; justify-content:flex-end; gap:10px; margin-bottom:16px; }
+.review-tools { display:flex; justify-content:flex-end; align-items:end; flex-wrap:wrap; gap:10px; margin-bottom:16px; }
 .review-tools button { border:1px solid #31594f; padding:9px 12px; }
 .review-tools button.active { background:#5de3b5; color:#06100e; }
+.mask-style { margin-right:auto; }
+.mask-style select { min-width:240px; padding:8px 10px; }
 .page-previews { display:grid; gap:22px; }
 .page-card { border:1px solid #285248; background:#06100e; padding:12px; }
 .page-card h3 { margin:0 0 10px; color:#8fa59e; font-size:.75rem; text-transform:uppercase; letter-spacing:.1em; }

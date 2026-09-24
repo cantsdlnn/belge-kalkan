@@ -41,6 +41,7 @@ const pagePreviews = document.querySelector('#pagePreviews');
 const documentStats = document.querySelector('#documentStats');
 const manualButton = document.querySelector('#manualMode');
 const toggleAllButton = document.querySelector('#toggleAll');
+const maskStyle = document.querySelector('#maskStyle');
 let selectedFile = null;
 let scanState = null;
 let regions = [];
@@ -194,6 +195,7 @@ document.querySelector('#downloadRedacted').addEventListener('click', async (eve
   }));
   const form = new FormData();
   form.append('file',selectedFile); form.append('regions',JSON.stringify(boxes)); form.append('fingerprint',scanState.fingerprint);
+  form.append('mask_style',maskStyle.value);
   documentStatus.textContent = 'Maskeli çıktı bellekte oluşturuluyor…';
   downloadButton.disabled = true;
   try {
@@ -207,7 +209,8 @@ document.querySelector('#downloadRedacted').addEventListener('click', async (eve
     const name = match ? decodeURIComponent(match[1]) : 'belge-maskeli';
     const url = URL.createObjectURL(blob); const link = document.createElement('a');
     link.href = url; link.download = name; document.body.append(link); link.click(); link.remove();
-    URL.revokeObjectURL(url); documentStatus.textContent = `${selected.length} alan maskelendi ve dosya indirildi.`;
+    const styleLabel = maskStyle.value === 'background' ? 'arka plan rengiyle' : 'siyah şeritle';
+    URL.revokeObjectURL(url); documentStatus.textContent = `${selected.length} alan ${styleLabel} maskelendi ve dosya indirildi.`;
   } catch (error) {
     documentStatus.textContent = error.message || 'Maskeli çıktı oluşturulamadı.';
   } finally {

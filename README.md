@@ -19,7 +19,9 @@ Hata kaydı, destek talebi veya taranmış belge paylaşılırken gerçek kişis
 - E-posta ve Türkiye mobil telefon biçimleri
 - PNG, JPEG, WEBP, TIFF ve 10 sayfaya kadar taranmış PDF desteği
 - RapidOCR + ONNX Runtime ile yerel OCR; harici model API'si yok
+- OCR satırının tamamı yerine yalnız algılanan hassas değere daraltılmış otomatik kutular
 - Bulunan bölgeleri kutularla önizleme, tek tek seçme ve elle maske alanı ekleme
+- Belgenin yakın çevresinden örneklenen doğal arka plan dolgusu; isteğe bağlı siyah şerit
 - Maskelenmiş PNG veya yeniden oluşturulmuş, düzleştirilmiş PDF indirme
 - 10 MB dosya, 10 sayfa, 30 megapiksel ve 20.000 piksel kenar güvenlik sınırları
 - Etiket, maske ve çekirdek serviste HMAC tabanlı kararlı token üretimi
@@ -55,11 +57,11 @@ ruff check .
 pytest
 ```
 
-Testler checksum doğrulamasını, yanlış pozitiflerin elenmesini, görsel/PDF yüklemeyi, koordinat ölçeklemeyi, piksel maskelemeyi, PDF'deki eski metin katmanının kaldırılmasını ve API'nin ham OCR metnini ayrı alan olarak döndürmemesini kapsar. CI ayrıca gerçek ONNX OCR motorunu çalıştırır ve Docker imajını oluşturup aynı motoru ayrıcalıksız kullanıcıyla sınar.
+Testler checksum doğrulamasını, yanlış pozitiflerin elenmesini, görsel/PDF yüklemeyi, hassas değere daraltılmış koordinatları, yerel arka plan ve siyah piksel maskelemesini, PDF'deki eski metin katmanının kaldırılmasını ve API'nin ham OCR metnini ayrı alan olarak döndürmemesini kapsar. CI ayrıca gerçek ONNX OCR motorunu çalıştırır ve Docker imajını oluşturup aynı motoru ayrıcalıksız kullanıcıyla sınar.
 
 ## Güvenlik ve dürüst sınırlar
 
-BelgeKalkan bir ön kontrol aracıdır; bağlamı anlayan eksiksiz bir veri kaybı önleme ürünü değildir. OCR küçük, eğik veya düşük kontrastlı yazıları kaçırabilir. Ad, adres ve serbest biçimli hassas içerik gibi her kişisel veriyi bulamaz. Bu nedenle otomatik kutular kullanıcıya gösterilir, elle alan ekleme sağlanır ve çıktı paylaşılmadan önce insan kontrolü istenir.
+BelgeKalkan bir ön kontrol aracıdır; bağlamı anlayan eksiksiz bir veri kaybı önleme ürünü değildir. OCR küçük, eğik veya düşük kontrastlı yazıları kaçırabilir. Ad, adres ve serbest biçimli hassas içerik gibi her kişisel veriyi bulamaz. Orantılı alt-kutu hesabı değişken genişlikli veya eğik yazıda kusursuz olmayabilir; dokulu/renk geçişli zeminde örneklenen dolgu fark edilebilir. Bu nedenle otomatik kutular kullanıcıya gösterilir, elle alan ekleme sağlanır ve çıktı paylaşılmadan önce insan kontrolü istenir.
 
 Web katmanı veri tabanı kullanmaz; yüklenen dosya ve OCR sonucu kalıcı olarak saklanmaz. Görsel önizlemesi kullanıcının kendi tarayıcısına geri gönderilir. İnternete açık dağıtım için TLS, kimlik doğrulama, hız sınırı, geçici dosya politikası ve altyapı logları ayrıca ele alınmalıdır. Ayrıntı: [SECURITY.md](SECURITY.md).
 

@@ -23,7 +23,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(
     title="BelgeKalkan",
-    version="2.0.0",
+    version="2.1.0",
     description="Metin, görsel ve PDF için yerel kişisel veri maskeleme servisi.",
 )
 
@@ -91,11 +91,17 @@ async def redact_document_endpoint(
     file: Annotated[UploadFile, File(...)],
     regions: Annotated[str, Form(...)],
     fingerprint: Annotated[str, Form(...)],
+    mask_style: Annotated[Literal["background", "black"], Form()] = "background",
 ) -> Response:
     data = await _read_upload(file)
     try:
         output, media_type, filename = await run_in_threadpool(
-            redact_document, data, file.filename or "document", regions, fingerprint
+            redact_document,
+            data,
+            file.filename or "document",
+            regions,
+            fingerprint,
+            mask_style,
         )
     except DocumentError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

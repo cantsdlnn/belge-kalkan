@@ -1,5 +1,12 @@
 # Değişiklik günlüğü
 
+## 2.1.0
+
+- Otomatik maske kutuları OCR satırının tamamı yerine algılanan hassas değere daraltıldı.
+- Çevredeki belge rengini örnekleyen doğal arka plan dolgusu varsayılan yapıldı.
+- Siyah şerit, arayüzde isteğe bağlı maske stili olarak korundu.
+- Arka plan örnekleme, çoklu bulgu alt-kutuları ve maske stili API doğrulaması test edildi.
+
 ## 2.0.0
 
 - PNG, JPEG, WEBP, TIFF ve taranmış PDF desteği eklendi.

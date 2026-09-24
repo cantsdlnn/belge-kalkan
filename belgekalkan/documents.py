@@ -10,13 +10,14 @@ import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from statistics import median
 from threading import Lock
-from typing import Protocol
+from typing import Literal, Protocol
 
 import pymupdf
 from PIL import Image, ImageDraw, ImageOps, UnidentifiedImageError
 
-from .detectors import detect
+from .detectors import Finding, detect
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 MAX_PAGES = 10
@@ -25,6 +26,7 @@ MAX_IMAGE_SIDE = 20_000
 MAX_OCR_LINES = 5_000
 MAX_REDACTION_BOXES = 500
 SUPPORTED_IMAGE_FORMATS = {"JPEG", "PNG", "WEBP", "TIFF"}
+MaskStyle = Literal["background", "black"]
 
 
 class DocumentError(ValueError):
@@ -180,6 +182,31 @@ def _rect_from_polygon(
     return left, top, max(1, right - left), max(1, bottom - top)
 
 
+def _rect_for_finding(
+    line: OcrLine, finding: Finding, image: Image.Image
+) -> tuple[int, int, int, int]:
+    """Approximate a finding's box inside its OCR line without exposing its value."""
+    left, top, width, height = _rect_from_polygon(line.polygon, image, padding=0)
+    if not line.text or width < height:
+        return _rect_from_polygon(line.polygon, image, padding=3)
+
+    character_width = width / len(line.text)
+    horizontal_padding = max(2, round(character_width * 0.5))
+    finding_left = max(0, round(left + finding.start * character_width) - horizontal_padding)
+    finding_right = min(
+        image.width,
+        round(left + finding.end * character_width) + horizontal_padding,
+    )
+    finding_top = max(0, top - 3)
+    finding_bottom = min(image.height, top + height + 3)
+    return (
+        finding_left,
+        finding_top,
+        max(1, finding_right - finding_left),
+        max(1, finding_bottom - finding_top),
+    )
+
+
 def scan_document(
     data: bytes, filename: str, engine: OcrEngine | None = None, confidence_threshold: float = 0.55
 ) -> ScanResult:
@@ -201,17 +228,23 @@ def scan_document(
             findings = detect(line.text)
             if not findings:
                 continue
-            x, y, width, height = _rect_from_polygon(line.polygon, page.image)
-            kinds = tuple(sorted({finding.kind.value for finding in findings}))
-            regions.append(
-                SensitiveRegion(
-                    id=f"p{page.number}-l{line_number}", page=page.number,
-                    x=x, y=y, width=width, height=height,
-                    kinds=kinds, confidence=round(line.confidence, 3),
+            for finding_number, finding in enumerate(findings):
+                x, y, width, height = _rect_for_finding(line, finding, page.image)
+                regions.append(
+                    SensitiveRegion(
+                        id=f"p{page.number}-l{line_number}-f{finding_number}",
+                        page=page.number,
+                        x=x,
+                        y=y,
+                        width=width,
+                        height=height,
+                        kinds=(finding.kind.value,),
+                        confidence=round(line.confidence, 3),
+                    )
                 )
-            )
-            if len(regions) > MAX_REDACTION_BOXES:
-                raise DocumentError("Hassas alan sınırı aşıldı; belgeyi bölerek yeniden deneyin.")
+                if len(regions) > MAX_REDACTION_BOXES:
+                    message = "Hassas alan sınırı aşıldı; belgeyi bölerek yeniden deneyin."
+                    raise DocumentError(message)
 
     return ScanResult(
         fingerprint=content_fingerprint(data), source_kind=source_kind, pages=pages,
@@ -325,14 +358,55 @@ def parse_redaction_boxes(raw: str, pages: list[PageImage]) -> list[RedactionBox
     return boxes
 
 
+def _sample_background_color(image: Image.Image, box: RedactionBox) -> tuple[int, int, int]:
+    """Estimate the local paper/background color from a ring outside the redaction box."""
+    margin = max(4, min(24, box.height // 2))
+    left = max(0, box.x - margin)
+    top = max(0, box.y - margin)
+    right = min(image.width, box.x + box.width + margin)
+    bottom = min(image.height, box.y + box.height + margin)
+    box_right = min(image.width, box.x + box.width)
+    box_bottom = min(image.height, box.y + box.height)
+
+    strips = (
+        (left, top, right, box.y),
+        (left, box_bottom, right, bottom),
+        (left, box.y, box.x, box_bottom),
+        (box_right, box.y, right, box_bottom),
+    )
+    pixels: list[tuple[int, int, int]] = []
+    for coordinates in strips:
+        strip_left, strip_top, strip_right, strip_bottom = coordinates
+        if strip_right <= strip_left or strip_bottom <= strip_top:
+            continue
+        sample = image.crop(coordinates)
+        if sample.width * sample.height > 10_000:
+            ratio = math.sqrt(10_000 / (sample.width * sample.height))
+            sample = sample.resize(
+                (max(1, round(sample.width * ratio)), max(1, round(sample.height * ratio))),
+                Image.Resampling.BOX,
+            )
+        pixels.extend(sample.get_flattened_data())
+
+    if not pixels:
+        return (255, 255, 255)
+    return tuple(round(median(pixel[channel] for pixel in pixels)) for channel in range(3))
+
+
 def redact_document(
-    data: bytes, filename: str, raw_boxes: str, fingerprint: str
+    data: bytes,
+    filename: str,
+    raw_boxes: str,
+    fingerprint: str,
+    mask_style: MaskStyle = "background",
 ) -> tuple[bytes, str, str]:
     valid_fingerprint = re.fullmatch(r"[0-9a-fA-F]{64}", fingerprint)
     if valid_fingerprint is None or not hmac.compare_digest(
         content_fingerprint(data), fingerprint.lower()
     ):
         raise DocumentError("Dosya, taranan belgeyle eşleşmiyor.")
+    if mask_style not in {"background", "black"}:
+        raise DocumentError("Maske stili geçersiz.")
     source_kind, pages = load_pages(data, filename)
     boxes = parse_redaction_boxes(raw_boxes, pages)
     by_page: dict[int, list[RedactionBox]] = {}
@@ -344,9 +418,10 @@ def redact_document(
         image = page.image.copy()
         draw = ImageDraw.Draw(image)
         for box in by_page.get(page.number, []):
+            fill = (0, 0, 0) if mask_style == "black" else _sample_background_color(image, box)
             draw.rectangle(
-                (box.x, box.y, box.x + box.width, box.y + box.height),
-                fill=(0, 0, 0), outline=(0, 0, 0), width=2,
+                (box.x, box.y, box.x + box.width - 1, box.y + box.height - 1),
+                fill=fill,
             )
         redacted_pages.append(image)
 

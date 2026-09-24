@@ -68,12 +68,19 @@
             </div>
             <div class="review-warning">OCR hiçbir zaman kusursuz değildir. Kırmızı kutuları kontrol edin; kaçan alanlar için “Elle alan ekle” seçeneğini kullanın.</div>
             <div class="review-tools">
+              <label class="mask-style" for="maskStyle">
+                <span>Maske görünümü</span>
+                <select id="maskStyle">
+                  <option value="background">Arka plan rengi (önerilen)</option>
+                  <option value="black">Siyah şerit</option>
+                </select>
+              </label>
               <button id="toggleAll" type="button">Tümünü kaldır</button>
               <button id="manualMode" type="button">+ Elle alan ekle</button>
             </div>
             <div id="pagePreviews" class="page-previews"></div>
             <div class="download-row">
-              <p>Seçili alanlar siyah blokla kapatılır. PDF çıktısı, gizli metin katmanı kalmaması için yeniden oluşturulur.</p>
+              <p>Önerilen seçenek, her alanın çevresindeki belge rengini örnekleyerek doğal bir dolgu üretir. PDF çıktısı, gizli metin katmanı kalmaması için yeniden oluşturulur.</p>
               <button id="downloadRedacted" class="primary" type="button">Maskeli dosyayı indir</button>
             </div>
           </div>

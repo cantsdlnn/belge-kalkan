@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import numpy as np
 import pymupdf
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from belgekalkan.documents import (
     DocumentError,
@@ -29,7 +29,9 @@ class FakeOcr:
         return self.lines
 
 
-def png_bytes(width: int = 500, height: int = 200, color: str = "white") -> bytes:
+def png_bytes(
+    width: int = 500, height: int = 200, color: str | tuple[int, int, int] = "white"
+) -> bytes:
     buffer = io.BytesIO()
     Image.new("RGB", (width, height), color).save(buffer, format="PNG")
     return buffer.getvalue()
@@ -50,10 +52,22 @@ def test_scan_finds_sensitive_line_without_returning_raw_ocr_text() -> None:
 
     assert result.source_kind == "image"
     assert result.regions[0].kinds == ("tckn",)
+    assert result.regions[0].x > 70
+    assert result.regions[0].width < 190
     payload = serialize_scan(result)
     assert payload["raw_ocr_text_returned"] is False
     assert "10000000146" not in json.dumps(payload)
     assert str(payload["pages"][0]["image"]).startswith("data:image/jpeg;base64,")
+
+
+def test_scan_creates_separate_tight_regions_for_multiple_findings_on_one_line() -> None:
+    text = "Kimlik 10000000146 E-posta test@example.com"
+    line = OcrLine(text, 0.96, ((20, 20), (440, 20), (440, 60), (20, 60)))
+    result = scan_document(png_bytes(), "shot.png", FakeOcr([line]))
+
+    assert [region.kinds for region in result.regions] == [("tckn",), ("email",)]
+    assert result.regions[0].x + result.regions[0].width < result.regions[1].x
+    assert all(region.width < 220 for region in result.regions)
 
 
 def test_scan_counts_low_confidence_lines_even_without_detection() -> None:
@@ -117,13 +131,38 @@ def test_redacts_selected_image_area_to_black() -> None:
         "preview_width": 100, "preview_height": 100,
     }])
     output, media_type, filename = redact_document(
-        source, "shot.png", boxes, content_fingerprint(source)
+        source, "shot.png", boxes, content_fingerprint(source), "black"
     )
     image = Image.open(io.BytesIO(output)).convert("RGB")
     assert image.getpixel((20, 30)) == (0, 0, 0)
     assert image.getpixel((80, 80)) == (255, 255, 255)
     assert media_type == "image/png"
     assert filename == "shot-maskeli.png"
+
+
+def test_redacts_image_area_with_sampled_local_background_by_default() -> None:
+    background = (244, 240, 232)
+    image = Image.new("RGB", (120, 90), background)
+    ImageDraw.Draw(image).rectangle((30, 30, 79, 54), fill=(15, 15, 15))
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    source = buffer.getvalue()
+    boxes = json.dumps([{
+        "page": 0, "x": 30, "y": 30, "width": 50, "height": 25,
+        "preview_width": 120, "preview_height": 90,
+    }])
+
+    output, _, _ = redact_document(source, "form.png", boxes, content_fingerprint(source))
+    redacted = Image.open(io.BytesIO(output)).convert("RGB")
+
+    assert redacted.getpixel((50, 40)) == background
+    assert redacted.getpixel((10, 10)) == background
+
+
+def test_rejects_unknown_mask_style() -> None:
+    source = png_bytes()
+    with pytest.raises(DocumentError, match="Maske stili"):
+        redact_document(source, "shot.png", "[]", content_fingerprint(source), "blur")  # type: ignore[arg-type]
 
 
 def test_rebuilds_pdf_without_original_text_layer() -> None:
