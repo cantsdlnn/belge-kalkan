@@ -30,7 +30,7 @@ Issues = "https://github.com/cantsdlnn/belge-kalkan/issues"
 [project.optional-dependencies]
 dev = [
   "httpx2>=2.13,<3",
-  "pytest>=8.3,<9",
+  "pytest>=8.3,<10",
   "pytest-cov>=6,<7",
   "ruff>=0.9,<1",
 ]
